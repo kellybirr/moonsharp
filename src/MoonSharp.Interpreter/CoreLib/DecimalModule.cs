@@ -37,7 +37,7 @@ namespace MoonSharp.Interpreter.CoreLib
 		}
 
 		/// <summary>
-		/// Coerces a script value (decimal userdata, number, or string) into a DecimalType.
+		/// Coerces a script value (decimal or integer userdata, number, or string) into a DecimalType.
 		/// </summary>
 		private static DecimalType ToDecimal(DynValue v, string funcName)
 		{
@@ -46,7 +46,10 @@ namespace MoonSharp.Interpreter.CoreLib
 				case DataType.UserData:
 					if (v.UserData != null && v.UserData.Object is DecimalType)
 						return (DecimalType)v.UserData.Object;
-					throw ScriptRuntimeException.BadArgument(0, funcName, "decimal, number or string expected, got userdata");
+					// An integer always converts exactly: every Int64 value is representable as decimal.
+					if (v.UserData != null && v.UserData.Object is IntegerType)
+						return new DecimalType(((IntegerType)v.UserData.Object).Value);
+					throw ScriptRuntimeException.BadArgument(0, funcName, "decimal, integer, number or string expected, got userdata");
 				case DataType.Number:
 				{
 					double d = v.Number;
@@ -63,7 +66,7 @@ namespace MoonSharp.Interpreter.CoreLib
 					return new DecimalType(parsed);
 				}
 				default:
-					throw ScriptRuntimeException.BadArgument(0, funcName, "decimal, number or string expected, got " + v.Type.ToLuaTypeString());
+					throw ScriptRuntimeException.BadArgument(0, funcName, "decimal, integer, number or string expected, got " + v.Type.ToLuaTypeString());
 			}
 		}
 

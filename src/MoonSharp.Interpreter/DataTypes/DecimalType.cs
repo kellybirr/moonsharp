@@ -13,9 +13,11 @@ namespace MoonSharp.Interpreter
 	/// <see cref="ScriptRuntimeException"/> instead of throwing a raw CLR exception that
 	/// would escape the interpreter (deterministic-trap semantics).
 	///
-	/// Arithmetic and comparison operators are provided both between two decimals and
-	/// between a decimal and a Lua number (double), so expressions such as
-	/// <c>decimal(10) + 5</c> work directly from script.
+	/// Arithmetic and comparison operators are provided between two decimals, between a
+	/// decimal and a Lua number (double), and between a decimal and an
+	/// <see cref="IntegerType"/>, so expressions such as <c>decimal(10) + 5</c> and
+	/// <c>decimal('1.5') * integer(3)</c> work directly from script. In every mixed form the
+	/// other operand is promoted to decimal and the result is a decimal.
 	/// </summary>
 	public struct DecimalType : IEquatable<DecimalType>, IComparable<DecimalType>, IComparable
 	{
@@ -65,25 +67,25 @@ namespace MoonSharp.Interpreter
 			return d.ToString(CultureInfo.InvariantCulture);
 		}
 
-		private static DecimalType Add(decimal a, decimal b)
+		internal static DecimalType Add(decimal a, decimal b)
 		{
 			try { return new DecimalType(a + b); }
 			catch (OverflowException) { throw new ScriptRuntimeException("decimal overflow in '+' ({0} + {1})", Fmt(a), Fmt(b)); }
 		}
 
-		private static DecimalType Sub(decimal a, decimal b)
+		internal static DecimalType Sub(decimal a, decimal b)
 		{
 			try { return new DecimalType(a - b); }
 			catch (OverflowException) { throw new ScriptRuntimeException("decimal overflow in '-' ({0} - {1})", Fmt(a), Fmt(b)); }
 		}
 
-		private static DecimalType Mul(decimal a, decimal b)
+		internal static DecimalType Mul(decimal a, decimal b)
 		{
 			try { return new DecimalType(a * b); }
 			catch (OverflowException) { throw new ScriptRuntimeException("decimal overflow in '*' ({0} * {1})", Fmt(a), Fmt(b)); }
 		}
 
-		private static DecimalType Div(decimal a, decimal b)
+		internal static DecimalType Div(decimal a, decimal b)
 		{
 			if (b == 0m)
 				throw new ScriptRuntimeException("decimal division by zero");
@@ -91,7 +93,7 @@ namespace MoonSharp.Interpreter
 			catch (OverflowException) { throw new ScriptRuntimeException("decimal overflow in '/' ({0} / {1})", Fmt(a), Fmt(b)); }
 		}
 
-		private static DecimalType Mod(decimal a, decimal b)
+		internal static DecimalType Mod(decimal a, decimal b)
 		{
 			if (b == 0m)
 				throw new ScriptRuntimeException("decimal modulo by zero");
@@ -118,6 +120,16 @@ namespace MoonSharp.Interpreter
 		public static DecimalType operator %(DecimalType a, DecimalType b) { return Mod(a.Value, b.Value); }
 		public static DecimalType operator %(DecimalType a, double b) { return Mod(a.Value, FromDouble(b, "%")); }
 		public static DecimalType operator %(double a, DecimalType b) { return Mod(FromDouble(a, "%"), b.Value); }
+
+		// Mixed decimal/integer arithmetic yields a decimal: every Int64 converts to decimal
+		// exactly, so no precision is lost promoting the integer operand. (The mirror-image
+		// operand order lives on IntegerType, since the runtime dispatches the metamethod from
+		// the first operand's descriptor.)
+		public static DecimalType operator +(DecimalType a, IntegerType b) { return Add(a.Value, b.Value); }
+		public static DecimalType operator -(DecimalType a, IntegerType b) { return Sub(a.Value, b.Value); }
+		public static DecimalType operator *(DecimalType a, IntegerType b) { return Mul(a.Value, b.Value); }
+		public static DecimalType operator /(DecimalType a, IntegerType b) { return Div(a.Value, b.Value); }
+		public static DecimalType operator %(DecimalType a, IntegerType b) { return Mod(a.Value, b.Value); }
 
 		// Negation never overflows: decimal is sign-magnitude with a symmetric range.
 		public static DecimalType operator -(DecimalType a) { return new DecimalType(-a.Value); }

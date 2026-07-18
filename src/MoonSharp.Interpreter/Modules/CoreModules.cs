@@ -85,12 +85,16 @@ namespace MoonSharp.Interpreter
 		/// The "decimal" fixed-point decimal package (introduced by MoonSharp), backed by System.Decimal.
 		/// </summary>
 		Decimal = 0x20000,
+		/// <summary>
+		/// The "integer" fixed-width signed 64-bit integer package (introduced by MoonSharp), backed by System.Int64.
+		/// </summary>
+		Integer = 0x40000,
 
 
 		/// <summary>
-		/// A sort of "hard" sandbox preset, including string, math, table, bit32, decimal packages, constants and table iterators.
+		/// A sort of "hard" sandbox preset, including string, math, table, bit32, decimal, integer packages, constants and table iterators.
 		/// </summary>
-		Preset_HardSandbox = GlobalConsts | TableIterators | String | Table | Basic | Math | Bit32 | Decimal,
+		Preset_HardSandbox = GlobalConsts | TableIterators | String | Table | Basic | Math | Bit32 | Decimal | Integer,
 		/// <summary>
 		/// A softer sandbox preset, adding metatables support, error handling, coroutine, time functions, json parsing and dynamic evaluations.
 		/// </summary>

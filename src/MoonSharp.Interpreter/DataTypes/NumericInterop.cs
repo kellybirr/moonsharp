@@ -5,14 +5,14 @@ namespace MoonSharp.Interpreter
 {
 	/// <summary>
 	/// Shared value-equality and ordering logic for the numeric userdata types
-	/// (currently <see cref="DecimalType"/>) and plain Lua numbers.
+	/// (<see cref="IntegerType"/> and <see cref="DecimalType"/>) and plain Lua numbers.
 	///
 	/// This makes the numeric types behave consistently under the '==', '&lt;', '&lt;=',
 	/// '&gt;' and '&gt;=' metamethods: two numeric values compare by mathematical value
-	/// regardless of which concrete type carries them, so <c>decimal(5) == 5</c> and
-	/// <c>decimal(5) &lt; 6</c> behave as expected. (Stock Lua only consults '__eq' when
-	/// both operands share a type, so cross-type numeric equality is a deliberate
-	/// departure in favour of consistency.)
+	/// regardless of which concrete type carries them, so <c>decimal(5) == 5</c>,
+	/// <c>integer(5) == decimal(5)</c> and <c>integer(5) &lt; 6</c> behave as expected.
+	/// (Stock Lua only consults '__eq' when both operands share a type, so cross-type
+	/// numeric equality is a deliberate departure in favour of consistency.)
 	///
 	/// Integer-valued operands are compared exactly (via <see cref="Decimal"/>);
 	/// comparisons involving a floating-point (double) operand are performed in double
@@ -34,6 +34,7 @@ namespace MoonSharp.Interpreter
 		/// </summary>
 		private static object Unwrap(object o)
 		{
+			if (o is IntegerType) return ((IntegerType)o).Value;
 			if (o is DecimalType) return ((DecimalType)o).Value;
 			return o;
 		}
