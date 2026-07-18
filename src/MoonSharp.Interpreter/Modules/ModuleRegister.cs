@@ -40,6 +40,8 @@ namespace MoonSharp.Interpreter
 			if (modules.Has(CoreModules.IO)) RegisterModuleType<IoModule>(table);
 			if (modules.Has(CoreModules.Debug)) RegisterModuleType<DebugModule>(table);
 			if (modules.Has(CoreModules.Json)) RegisterModuleType<JsonModule>(table);
+			if (modules.Has(CoreModules.Decimal)) RegisterModuleType<DecimalModule>(table);
+			if (modules.Has(CoreModules.Integer)) RegisterModuleType<IntegerModule>(table);
 
 			return table;
 		}

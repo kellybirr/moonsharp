@@ -171,5 +171,33 @@ namespace MoonSharp.Interpreter
 					throw new ScriptRuntimeException("Unexpected LuaType {0}", type);
 			}
 		}
+
+		/// <summary>
+		/// Returns the Lua type string ("nil", "number", "string", "table", ...) for a raw CLR
+		/// object as produced by the runtime when it converts a Lua value to its CLR representation.
+		/// Used to build script-facing error messages that read in Lua terms rather than exposing
+		/// CLR type names such as "String" or "Table".
+		/// </summary>
+		public static string ToLuaTypeString(this object obj)
+		{
+			if (obj == null)
+				return "nil";
+			if (obj is string)
+				return "string";
+			if (obj is bool)
+				return "boolean";
+			if (obj is sbyte || obj is byte || obj is short || obj is ushort ||
+				obj is int || obj is uint || obj is long || obj is ulong ||
+				obj is float || obj is double || obj is decimal)
+				return "number";
+			if (obj is Table)
+				return "table";
+			if (obj is Closure || obj is CallbackFunction)
+				return "function";
+			if (obj is Coroutine)
+				return "thread";
+			// Any other CLR object reaches scripts as userdata.
+			return "userdata";
+		}
 	}
 }
