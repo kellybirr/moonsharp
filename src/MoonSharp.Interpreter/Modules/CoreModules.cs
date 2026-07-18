@@ -81,12 +81,16 @@ namespace MoonSharp.Interpreter
 		/// The "json" package (introduced by MoonSharp).
 		/// </summary>
 		Json = 0x10000,
+		/// <summary>
+		/// The "decimal" fixed-point decimal package (introduced by MoonSharp), backed by System.Decimal.
+		/// </summary>
+		Decimal = 0x20000,
 
 
 		/// <summary>
-		/// A sort of "hard" sandbox preset, including string, math, table, bit32 packages, constants and table iterators.
+		/// A sort of "hard" sandbox preset, including string, math, table, bit32, decimal packages, constants and table iterators.
 		/// </summary>
-		Preset_HardSandbox = GlobalConsts | TableIterators | String | Table | Basic | Math | Bit32,
+		Preset_HardSandbox = GlobalConsts | TableIterators | String | Table | Basic | Math | Bit32 | Decimal,
 		/// <summary>
 		/// A softer sandbox preset, adding metatables support, error handling, coroutine, time functions, json parsing and dynamic evaluations.
 		/// </summary>
