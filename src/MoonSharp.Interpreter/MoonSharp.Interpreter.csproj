@@ -4,19 +4,21 @@
         <TargetFrameworks>netstandard2.0;net45</TargetFrameworks>
         <AssemblyOriginatorKeyFile>keypair.snk</AssemblyOriginatorKeyFile>
         <Authors>MoonSharp</Authors>
-        <Description>An interpreter for the Lua language</Description>
+        <Description>An interpreter for the Lua language, extended with exact 'integer' (Int64) and 'decimal' (System.Decimal) numeric types with checked arithmetic. A fork of MoonSharp with non-pure-Lua extensions.</Description>
         <Copyright>Copyright © 2014-2015, Marco Mastropaolo</Copyright>
-        <PackageProjectUrl>https://www.moonsharp.org</PackageProjectUrl>
+        <PackageProjectUrl>https://github.com/kellybirr/moonsharp</PackageProjectUrl>
         <PackageLicenseFile>LICENSE</PackageLicenseFile>
-        <RepositoryUrl>https://github.com/moonsharp-devs/moonsharp/</RepositoryUrl>
-        <PackageId>MoonSharp</PackageId>
-        <Title>MoonSharp.Interpreter</Title>
+        <RepositoryUrl>https://github.com/kellybirr/moonsharp/</RepositoryUrl>
+        <PackageId>Dustorm.MoonSharp.Plus</PackageId>
+        <Title>Dustorm.MoonSharp.Plus</Title>
+        <PackageReadmeFile>README.md</PackageReadmeFile>
         <SignAssembly>true</SignAssembly>
         <MinVerTagPrefix>v</MinVerTagPrefix>
     </PropertyGroup>
 
     <ItemGroup>
         <None Include="..\..\LICENSE" Pack="true" PackagePath="" />
+        <None Include="..\..\README.md" Pack="true" PackagePath="" />
         <PackageReference Include="MinVer" Version="7.0.0" PrivateAssets="All" />
     </ItemGroup>
 

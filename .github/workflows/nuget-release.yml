@@ -1,0 +1,62 @@
+name: NuGet Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  attach-nupkg-to-release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          # MinVer needs full history + tags to derive the package version.
+          fetch-depth: 0
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "8.0.x"
+
+      - name: Pack
+        run: |
+          set -euo pipefail
+          dotnet pack src/MoonSharp.Interpreter/MoonSharp.Interpreter.csproj -c Release -o .artifacts/nuget
+
+          # MinVer derives the version from the checked-out tag; fail loudly if it disagrees.
+          EXPECTED_VERSION="${GITHUB_REF_NAME#v}"
+          NUPKG=".artifacts/nuget/Dustorm.MoonSharp.Plus.${EXPECTED_VERSION}.nupkg"
+          if [ ! -f "${NUPKG}" ]; then
+            echo "Expected ${NUPKG} but found:"
+            ls .artifacts/nuget
+            exit 1
+          fi
+          echo "NUPKG=${NUPKG}" >> "${GITHUB_ENV}"
+
+      - name: Attach package to GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          TAG="${GITHUB_REF_NAME}"
+
+          # A prerelease tag (v3.1.0-beta.1) gets a prerelease-flagged release.
+          PRERELEASE_FLAG=""
+          case "${TAG}" in
+            *-*) PRERELEASE_FLAG="--prerelease" ;;
+          esac
+
+          if gh release view "${TAG}" >/dev/null 2>&1; then
+            gh release upload "${TAG}" "${NUPKG}" --clobber
+          else
+            gh release create "${TAG}" "${NUPKG}" \
+              --target "${GITHUB_SHA}" \
+              --title "${TAG}" \
+              --notes "Automated release for ${TAG}. Download the .nupkg and push it to nuget.org manually." \
+              ${PRERELEASE_FLAG}
+          fi
