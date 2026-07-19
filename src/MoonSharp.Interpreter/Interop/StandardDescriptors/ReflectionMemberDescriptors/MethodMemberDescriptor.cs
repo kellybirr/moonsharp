@@ -212,8 +212,18 @@ namespace MoonSharp.Interpreter.Interop
 
 				return BuildReturnValue(script, outParams, pars, retv);
 			}
-			catch
+			catch (System.Reflection.TargetInvocationException ex)
 			{
+				// MethodInfo.Invoke wraps any exception the invoked member throws in a
+				// TargetInvocationException. Unwrap it so a ScriptRuntimeException /
+				// ScriptTerminationException (or any other InterpreterException) raised by the
+				// member reaches the VM as itself — staying pcall-catchable and terminating
+				// correctly — instead of escaping to the host as a raw wrapper. (The optimized
+				// interop path calls a compiled delegate and never wraps, so it is unaffected;
+				// this closes the gap on the reflection/AOT path.) ExceptionDispatchInfo preserves
+				// the original throw stack.
+				if (ex.InnerException != null)
+					System.Runtime.ExceptionServices.ExceptionDispatchInfo.Capture(ex.InnerException).Throw();
 				throw;
 			}
 		}

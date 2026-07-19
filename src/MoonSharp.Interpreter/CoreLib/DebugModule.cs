@@ -39,6 +39,15 @@ namespace MoonSharp.Interpreter.CoreLib
 					if (result != null && result.Type != DataType.Void)
 						script.Options.DebugPrint(string.Format("{0}", result));
 				}
+				catch (ScriptTerminationException)
+				{
+					// A host execution-limit termination (instruction budget / cancellation) must
+					// unwind the entire stack, including this native REPL loop, to reach the host.
+					// It is deliberately NOT printed and swallowed like an ordinary evaluation
+					// error — otherwise a script that reached debug.debug() could outlast its
+					// limits by staying in this loop.
+					throw;
+				}
 				catch (InterpreterException ex)
 				{
 					script.Options.DebugPrint(string.Format("{0}", ex.DecoratedMessage ?? ex.Message));

@@ -120,5 +120,57 @@ namespace MoonSharp.Interpreter
 
 			return AsDecimal(ua).CompareTo(AsDecimal(ub));
 		}
+
+		/// <summary>
+		/// The '..' (concatenation) metamethod for the numeric userdata types. Stock Lua only
+		/// auto-converts strings and numbers under '..'; a userdata operand otherwise raises
+		/// "attempt to concatenate a userdata value" (the VM's <c>CastToString</c> returns null
+		/// for userdata, so <see cref="IntegerType"/>/<see cref="DecimalType"/> fell through to
+		/// that error). This extends '..' to treat those two types like the plain numbers they
+		/// represent, so <c>"total: " .. amount</c> and <c>"status " .. res.status</c> work the
+		/// way an author expects instead of trapping. The integer keeps its exact decimal string
+		/// and the decimal keeps its full scale (e.g. <c>"104.70"</c>), never a lossy double form.
+		///
+		/// Both operands are stringified in Lua-source order; a genuinely non-concatenable operand
+		/// (nil, boolean, table, function, or some other userdata) still raises the same
+		/// pcall-catchable <see cref="ScriptRuntimeException"/> stock Lua would, reporting the
+		/// offending operand in Lua type terms.
+		/// </summary>
+		internal static DynValue Concat(DynValue a, DynValue b)
+		{
+			string sa = ConcatString(a);
+			if (sa == null)
+				throw new ScriptRuntimeException("attempt to concatenate a {0} value", a.Type.ToLuaTypeString());
+
+			string sb = ConcatString(b);
+			if (sb == null)
+				throw new ScriptRuntimeException("attempt to concatenate a {0} value", b.Type.ToLuaTypeString());
+
+			return DynValue.NewString(sa + sb);
+		}
+
+		/// <summary>
+		/// The Lua string form of a value that is legal on either side of '..': strings and plain
+		/// numbers (via the same <c>CastToString</c> the VM uses for the fast path) plus the two
+		/// numeric userdata types. Returns null for anything else, signalling the caller to raise
+		/// the standard concat error.
+		/// </summary>
+		private static string ConcatString(DynValue v)
+		{
+			// String and Number both round-trip through CastToString exactly as the VM's own
+			// concat fast path does; only userdata returned null there and reached the metamethod.
+			string s = v.CastToString();
+			if (s != null)
+				return s;
+
+			if (v.Type == DataType.UserData && v.UserData != null)
+			{
+				object o = v.UserData.Object;
+				if (o is IntegerType) return ((IntegerType)o).ToString();
+				if (o is DecimalType) return ((DecimalType)o).ToString();
+			}
+
+			return null;
+		}
 	}
 }

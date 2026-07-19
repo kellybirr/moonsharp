@@ -153,6 +153,18 @@ namespace MoonSharp.Interpreter
 		}
 
 		/// <summary>
+		/// Metamethod handler for '..' (concatenation). Lets an integer join a string the way a
+		/// plain Lua number does — <c>"status " .. res.status</c> — instead of raising "attempt to
+		/// concatenate a userdata value". Handles either operand order and keeps the exact integer
+		/// text; see <see cref="NumericInterop.Concat"/>.
+		/// </summary>
+		[MoonSharpUserDataMetamethod("__concat")]
+		public static DynValue LuaConcat(ScriptExecutionContext executionContext, CallbackArguments args)
+		{
+			return NumericInterop.Concat(args[0], args[1]);
+		}
+
+		/// <summary>
 		/// Returns the string representation of the value.
 		/// </summary>
 		public override string ToString()

@@ -92,6 +92,13 @@ namespace MoonSharp.Interpreter
 		public ScriptOptions Options { get; private set; }
 
 		/// <summary>
+		/// Execution limits (instruction budget / cancellation) enforced by the VM loop.
+		/// </summary>
+		public ExecutionLimits ExecutionLimits { get { return m_ExecutionLimits; } }
+
+		private readonly ExecutionLimits m_ExecutionLimits = new ExecutionLimits();
+
+		/// <summary>
 		/// Gets the global options, that is options which cannot be customized per-script.
 		/// </summary>
 		public static ScriptGlobalOptions GlobalOptions { get; private set; }

@@ -20,6 +20,8 @@ namespace MoonSharp.Interpreter.Execution.VM
 
 			long executedInstructions = 0;
 			bool canAutoYield = (AutoYieldCounter > 0) && m_CanYield && (this.State != CoroutineState.Main);
+			ExecutionLimits limits = m_Script.ExecutionLimits;
+			bool checkLimits = limits.Enabled;
 
 			repeat_execution:
 
@@ -43,6 +45,23 @@ namespace MoonSharp.Interpreter.Execution.VM
 					}
 
 					++instructionPtr;
+
+					// Execution-limit enforcement runs AFTER instructionPtr is advanced so a limit
+					// exception unwinds exactly like any other in-loop exception: FillDebugData
+					// subtracts one to point at the instruction that tripped it (checking before the
+					// advance decorated the previous instruction, and a zero budget produced ip -1).
+					if (checkLimits)
+					{
+						long total = ++limits.ExecutedInstructions;
+						// Snapshot the nullable budget once. Reading HasValue and Value as two separate
+						// property calls could observe a concurrent clear in between and raise a raw
+						// InvalidOperationException; a single read is consistent within this check.
+						long? budget = limits.InstructionBudget;
+						if (budget.HasValue && total > budget.Value)
+							throw new ScriptTerminationException("instruction budget exceeded ({0} instructions)", budget.Value);
+						if ((total & 1023) == 0 && limits.CancellationToken.IsCancellationRequested)
+							throw new ScriptTerminationException("execution canceled by host deadline");
+					}
 
 					switch (i.OpCode)
 					{
