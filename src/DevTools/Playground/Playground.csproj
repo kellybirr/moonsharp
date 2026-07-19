@@ -12,7 +12,7 @@
         <PackageId>Playground</PackageId>
         <Title>Playground</Title>
         <SignAssembly>true</SignAssembly>
-        <PackageVersion>2.0.0</PackageVersion>
+        <PackageVersion>3.0.42-rc</PackageVersion>
         <OutputType>WinExe</OutputType>
     </PropertyGroup>
 

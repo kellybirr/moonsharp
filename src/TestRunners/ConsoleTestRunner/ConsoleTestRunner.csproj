@@ -11,7 +11,7 @@
         <RepositoryUrl>https://github.com/xanathar/moonsharp/</RepositoryUrl>
         <PackageId>MoonSharpTests</PackageId>
         <Title>MoonSharpTests</Title>
-        <PackageVersion>2.0.0</PackageVersion>
+        <PackageVersion>3.0.42-rc</PackageVersion>
         <OutputType>Exe</OutputType>
     </PropertyGroup>
 

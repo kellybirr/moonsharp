@@ -12,7 +12,7 @@
         <PackageId>MoonSharp</PackageId>
         <Title>MoonSharp</Title>
         <SignAssembly>true</SignAssembly>
-        <PackageVersion>2.0.0</PackageVersion>
+        <PackageVersion>3.0.42-rc</PackageVersion>
         <OutputType>Exe</OutputType>
     </PropertyGroup>
 

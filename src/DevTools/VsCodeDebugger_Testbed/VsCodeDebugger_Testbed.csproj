@@ -13,7 +13,7 @@
         <PackageId>VsCodeDebugger_Testbed</PackageId>
         <Title>VsCodeDebugger_Testbed</Title>
         <SignAssembly>true</SignAssembly>
-        <PackageVersion>2.0.0</PackageVersion>
+        <PackageVersion>3.0.42-rc</PackageVersion>
     </PropertyGroup>
 
     <PropertyGroup Condition="'$(Configuration)'=='Debug'">
