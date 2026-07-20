@@ -1,0 +1,88 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+  # Manual runs build, test, pack and upload the artifact without touching a
+  # GitHub release, so the packaging path can be exercised without cutting a tag.
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+env:
+  DOTNET_VERSION: "10.0.x"
+  EXE_TFM: net10.0
+  PACKAGE_ID: Dustorm.MoonSharp.Plus
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+        with:
+          # MinVer needs full history and tags to derive the package version.
+          fetch-depth: 0
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - name: Build
+        run: dotnet build src/moonsharp_ci.sln -c Release -v minimal
+
+      # See ci.yml: the TAP suite needs the runner's own output directory as cwd.
+      - name: Unit tests
+        working-directory: src/TestRunners/DotNetCoreTestRunner/bin/Release/${{ env.EXE_TFM }}
+        run: dotnet DotNetCoreTestRunner.dll /unit
+
+      - name: Pack
+        run: dotnet pack src/MoonSharp.Interpreter/MoonSharp.Interpreter.csproj -c Release -o .artifacts/nuget
+
+      - name: Verify package version matches the tag
+        if: github.ref_type == 'tag'
+        run: |
+          set -euo pipefail
+          EXPECTED="${GITHUB_REF_NAME#v}"
+          NUPKG=".artifacts/nuget/${PACKAGE_ID}.${EXPECTED}.nupkg"
+          if [ ! -f "${NUPKG}" ]; then
+            echo "::error::MinVer produced a version that disagrees with tag ${GITHUB_REF_NAME}."
+            echo "Expected ${NUPKG}, but pack produced:"
+            ls -1 .artifacts/nuget
+            exit 1
+          fi
+          echo "NUPKG=${NUPKG}" >> "${GITHUB_ENV}"
+
+      - name: Upload package as build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: nupkg
+          path: .artifacts/nuget/*.nupkg
+          if-no-files-found: error
+
+      - name: Attach package to GitHub release
+        if: github.ref_type == 'tag'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          TAG="${GITHUB_REF_NAME}"
+
+          # A SemVer prerelease tag (v3.0.42-rc) gets a prerelease-flagged release.
+          PRERELEASE_FLAG=""
+          case "${TAG}" in
+            *-*) PRERELEASE_FLAG="--prerelease" ;;
+          esac
+
+          if gh release view "${TAG}" >/dev/null 2>&1; then
+            gh release upload "${TAG}" "${NUPKG}" --clobber
+          else
+            gh release create "${TAG}" "${NUPKG}" \
+              --target "${GITHUB_SHA}" \
+              --title "${TAG}" \
+              --notes "Automated release for ${TAG}. Download the .nupkg and push it to nuget.org manually." \
+              ${PRERELEASE_FLAG}
+          fi

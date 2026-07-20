@@ -8,444 +8,62 @@ on:
     branches:
       - master
 
+# A newer push to the same branch makes an in-flight run obsolete.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  DOTNET_VERSION: "10.0.x"
+  # Target framework of the executable projects. Referenced in output paths below,
+  # so it only needs changing here when the tooling projects are retargeted.
+  EXE_TFM: net10.0
+
 jobs:
-  docker-ci:
+  build-and-test:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Build CI image
-        run: docker build --platform linux/amd64 -t moonsharp-ci .
-
-      - name: Run CI
-        run: docker run --rm --platform linux/amd64 moonsharp-ci
-
-  upm-artifact:
-    runs-on: ubuntu-latest
-    needs: docker-ci
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup Node
-        uses: actions/setup-node@v4
+        uses: actions/checkout@v5
         with:
-          node-version: "20"
-
-      - name: Stage UPM package
-        run: tools/upm/stage-local-package.sh 0.0.0-ci.${{ github.run_number }}
-
-      - name: Pack UPM tarball
-        run: |
-          cd .upm-staging/org.moonsharp.moonsharp
-          npm pack
-
-      - name: Pack VSCode debugger UPM tarball
-        run: |
-          cd .upm-staging/org.moonsharp.debugger.vscode
-          npm pack
-
-      - name: Upload UPM tarball artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: unity-package-tgz
-          path: .upm-staging/org.moonsharp.moonsharp/*.tgz
-
-      - name: Upload VSCode debugger UPM tarball artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: unity-package-vscode-debugger-tgz
-          path: .upm-staging/org.moonsharp.debugger.vscode/*.tgz
-
-      - name: Install VSCode extension dependencies
-        run: |
-          cd src/moonsharp-vscode-debug
-          npm install
-
-      - name: Compile VSCode extension
-        run: |
-          cd src/moonsharp-vscode-debug
-          npm run compile
-
-      - name: Build VSCode extension VSIX
-        run: |
-          cd src/moonsharp-vscode-debug
-          npm run package:vsix
-
-      - name: Upload VSCode extension VSIX artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: vscode-dap-vsix
-          path: src/moonsharp-vscode-debug/*.vsix
+          # MinVer derives the version from git history and tags.
+          fetch-depth: 0
 
       - name: Setup .NET
         uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: "8.0.x"
+          dotnet-version: ${{ env.DOTNET_VERSION }}
 
-      - name: Build MoonSharp CLI (net8.0)
-        run: dotnet build src/MoonSharp/MoonSharp.csproj -c Release -f net8.0 -v minimal
+      - name: Build
+        run: dotnet build src/moonsharp_ci.sln -c Release -v minimal
 
-      - name: Build DotNetCoreTestRunner (net8.0)
-        run: dotnet build src/TestRunners/DotNetCoreTestRunner/DotNetCoreTestRunner.csproj -c Release -f net8.0 -v minimal
+      # The TAP suite resolves its TestMore/** data files relative to the process
+      # working directory, so the runner has to be started from its own output
+      # directory. Running it from the repo root silently fails ~34 tests.
+      - name: Unit tests
+        working-directory: src/TestRunners/DotNetCoreTestRunner/bin/Release/${{ env.EXE_TFM }}
+        run: dotnet DotNetCoreTestRunner.dll /unit
 
-      - name: Smoke test MoonSharp CLI from stdin
+      - name: Smoke test - CLI evaluates a script from stdin
         run: |
           set -euo pipefail
-          cat src/MoonSharp/ci-smoke.lua | dotnet run --project src/MoonSharp/MoonSharp.csproj -c Release -f net8.0 > moonsharp-cli-smoke.log
-          grep -q "24" moonsharp-cli-smoke.log
+          dotnet run --project src/MoonSharp/MoonSharp.csproj -c Release --no-build \
+            < src/MoonSharp/ci-smoke.lua > cli-smoke.log
+          cat cli-smoke.log
+          grep -q "24" cli-smoke.log
 
-      - name: Hardwire codegen smoke (dump -> -W)
+      - name: Smoke test - hardwire codegen (/dump-types -> -W)
         run: |
           set -euo pipefail
           mkdir -p .artifacts/hardwire
-          dotnet run --project src/TestRunners/DotNetCoreTestRunner/DotNetCoreTestRunner.csproj -c Release -- /dump-types .artifacts/hardwire/testdump.lua
-          dotnet run --project src/MoonSharp/MoonSharp.csproj -c Release -f net8.0 -- -W .artifacts/hardwire/testdump.lua .artifacts/hardwire/HardwiredTypesSmoke.cs
+          dotnet run --project src/TestRunners/DotNetCoreTestRunner/DotNetCoreTestRunner.csproj \
+            -c Release --no-build -- /dump-types .artifacts/hardwire/testdump.lua
+          dotnet run --project src/MoonSharp/MoonSharp.csproj -c Release --no-build -- \
+            -W .artifacts/hardwire/testdump.lua .artifacts/hardwire/HardwiredTypes.cs
           test -s .artifacts/hardwire/testdump.lua
-          test -s .artifacts/hardwire/HardwiredTypesSmoke.cs
+          test -s .artifacts/hardwire/HardwiredTypes.cs
           grep -q "StringBuilder" .artifacts/hardwire/testdump.lua
-          grep -q "StringBuilder" .artifacts/hardwire/HardwiredTypesSmoke.cs
-
-      - name: Publish MoonSharp CLI (self-contained linux-x64)
-        run: |
-          set -euo pipefail
-          mkdir -p .artifacts/moonsharp-cli/linux-x64
-          dotnet publish src/MoonSharp/MoonSharp.csproj -c Release -f net8.0 -r linux-x64 --self-contained true -o .artifacts/moonsharp-cli/linux-x64 -v minimal
-          tar -czf .artifacts/moonsharp-cli/moonsharp-cli-sc-linux-x64.tar.gz -C .artifacts/moonsharp-cli/linux-x64 .
-
-      - name: Upload MoonSharp CLI self-contained linux-x64 artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: moonsharp-cli-sc-linux-x64
-          path: .artifacts/moonsharp-cli/moonsharp-cli-sc-linux-x64.tar.gz
-
-      - name: Publish MoonSharp CLI (self-contained osx-arm64)
-        run: |
-          set -euo pipefail
-          mkdir -p .artifacts/moonsharp-cli/osx-arm64
-          dotnet publish src/MoonSharp/MoonSharp.csproj -c Release -f net8.0 -r osx-arm64 --self-contained true -o .artifacts/moonsharp-cli/osx-arm64 -v minimal
-          tar -czf .artifacts/moonsharp-cli/moonsharp-cli-sc-osx-arm64.tar.gz -C .artifacts/moonsharp-cli/osx-arm64 .
-
-      - name: Upload MoonSharp CLI self-contained osx-arm64 artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: moonsharp-cli-sc-osx-arm64
-          path: .artifacts/moonsharp-cli/moonsharp-cli-sc-osx-arm64.tar.gz
-
-      - name: Publish MoonSharp CLI (self-contained win-x64)
-        run: |
-          set -euo pipefail
-          mkdir -p .artifacts/moonsharp-cli/win-x64
-          dotnet publish src/MoonSharp/MoonSharp.csproj -c Release -f net8.0 -r win-x64 --self-contained true -o .artifacts/moonsharp-cli/win-x64 -v minimal
-          (
-            cd .artifacts/moonsharp-cli/win-x64
-            zip -qr ../moonsharp-cli-sc-win-x64.zip .
-          )
-
-      - name: Upload MoonSharp CLI self-contained win-x64 artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: moonsharp-cli-sc-win-x64
-          path: .artifacts/moonsharp-cli/moonsharp-cli-sc-win-x64.zip
-
-  unity-testbed-headless:
-    runs-on: ubuntu-latest
-    timeout-minutes: 35
-    env:
-      UNITY_EDITOR_IMAGE: unityci/editor:ubuntu-2019.4.41f2-linux-il2cpp-3
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Check Unity credentials
-        id: unity-creds
-        env:
-          UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
-          UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
-          UNITY_TOTP_KEY: ${{ secrets.UNITY_TOTP_KEY }}
-        run: |
-          set -euo pipefail
-
-          missing=0
-          [ -n "${UNITY_EMAIL:-}" ] || missing=1
-          [ -n "${UNITY_PASSWORD:-}" ] || missing=1
-          [ -n "${UNITY_TOTP_KEY:-}" ] || missing=1
-
-          if [ "$missing" -eq 1 ]; then
-            echo "should_run=false" >> "$GITHUB_OUTPUT"
-            echo "Missing one or more required UNITY_* secrets (UNITY_EMAIL, UNITY_PASSWORD, UNITY_TOTP_KEY). UnityTestBed will be skipped."
-          else
-            echo "should_run=true" >> "$GITHUB_OUTPUT"
-            echo "All required UNITY_* secrets are present. UnityTestBed will run."
-          fi
-
-      - name: Setup Node
-        if: steps.unity-creds.outputs.should_run == 'true'
-        uses: actions/setup-node@v4
-        with:
-          node-version: "20"
-
-      - name: Cache npm
-        if: steps.unity-creds.outputs.should_run == 'true'
-        uses: actions/cache@v4
-        with:
-          path: ~/.npm
-          key: unity-license-activate-npm-${{ runner.os }}-2be4152c6ade907c090817c988588d5d9f3bc974
-          restore-keys: |
-            unity-license-activate-npm-${{ runner.os }}-
-
-      - name: Install unity-license-activate
-        if: steps.unity-creds.outputs.should_run == 'true'
-        run: |
-          npm install --global github:game-ci/unity-license-activate#2be4152c6ade907c090817c988588d5d9f3bc974
-          npm install --global unity-verify-code
-
-      - name: Restore Unity editor image cache
-        if: steps.unity-creds.outputs.should_run == 'true'
-        id: unity-image-cache-restore
-        uses: actions/cache/restore@v4
-        with:
-          path: /tmp/unity-editor-image.tar
-          key: unity-editor-image-${{ runner.os }}-ubuntu-2019.4.41f2-linux-il2cpp-3
-
-      - name: Load cached Unity editor image
-        if: steps.unity-creds.outputs.should_run == 'true' && steps.unity-image-cache-restore.outputs.cache-hit == 'true'
-        run: docker load -i /tmp/unity-editor-image.tar
-
-      - name: Pull Unity editor image
-        if: steps.unity-creds.outputs.should_run == 'true' && steps.unity-image-cache-restore.outputs.cache-hit != 'true'
-        id: unity-image-pull
-        run: docker pull "$UNITY_EDITOR_IMAGE"
-
-      - name: Start Unity test container
-        if: steps.unity-creds.outputs.should_run == 'true'
-        id: unity-container
-        run: |
-          set -euo pipefail
-
-          workdir="$PWD/_unity-license"
-          mkdir -p "$workdir"
-          container_name="unity-testbed-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
-
-          docker rm -f "$container_name" >/dev/null 2>&1 || true
-          docker run -d \
-            --name "$container_name" \
-            --workdir /github/workspace \
-            --volume "$PWD:/github/workspace" \
-            --volume "$workdir:/license" \
-            "$UNITY_EDITOR_IMAGE" \
-            /bin/bash -lc "sleep infinity" >/dev/null
-
-          echo "container_name=$container_name" >> "$GITHUB_OUTPUT"
-
-      - name: Generate fresh ALF
-        if: steps.unity-creds.outputs.should_run == 'true'
-        id: unity-alf-fresh
-        run: |
-          set -euo pipefail
-
-          workdir="$PWD/_unity-license"
-          container_name="${{ steps.unity-container.outputs.container_name }}"
-
-          rm -f "$workdir"/*.alf || true
-
-          set +e
-          timeout 60 docker exec "$container_name" /bin/bash -lc \
-            'cd /license && unity-editor -logFile /license/unity-alf.log -batchmode -nographics -quit -createManualActivationFile'
-          alf_exit=$?
-          set -e
-
-          alf_path="$(find "$workdir" -maxdepth 1 -type f -name '*.alf' | head -n 1)"
-          if [ -z "${alf_path:-}" ]; then
-            echo "::error::No .alf generated for Unity license activation."
-            echo "ALF generation exit code: $alf_exit"
-            tail -n 200 "$workdir/unity-alf.log" || true
-            exit 1
-          fi
-
-          echo "alf_path=$alf_path" >> "$GITHUB_OUTPUT"
-
-      - name: Exchange fresh ALF to ULF
-        if: steps.unity-creds.outputs.should_run == 'true'
-        id: unity-license-fresh
-        env:
-          UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
-          UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
-          UNITY_TOTP_KEY: ${{ secrets.UNITY_TOTP_KEY }}
-        run: |
-          set -euo pipefail
-
-          workdir="$PWD/_unity-license"
-          fresh_alf="${{ steps.unity-alf-fresh.outputs.alf_path }}"
-
-          if [ -z "${fresh_alf:-}" ] || [ ! -s "$fresh_alf" ]; then
-            echo "::error::Fresh ALF missing before exchange."
-            exit 1
-          fi
-
-          cd "$workdir"
-          rm -f "$workdir"/*.ulf || true
-
-          fresh_exit=1
-          for attempt in 1 2 3; do
-            set +e
-            timeout 60 unity-license-activate \
-              "$UNITY_EMAIL" \
-              "$UNITY_PASSWORD" \
-              "$fresh_alf" \
-              --authenticator-key "$UNITY_TOTP_KEY" \
-              >"$workdir/unity-license-activate-fresh.stdout" \
-              2>"$workdir/unity-license-activate-fresh.stderr"
-            fresh_exit=$?
-            set -e
-            if [ "$fresh_exit" -eq 0 ]; then
-              break
-            fi
-            if grep -q "2FA (Email)" "$workdir/unity-license-activate-fresh.stdout"; then
-              echo "::error::Unity requested Email 2FA, so UNITY_TOTP_KEY cannot be used. Configure this Unity account for Authenticator App 2FA or provide mailbox automation for unity-verify-code."
-              break
-            fi
-            if grep -Eq "ERR_NETWORK_CHANGED|ETIMEDOUT|Navigation timeout" "$workdir/unity-license-activate-fresh.stderr" "$workdir/unity-license-activate-fresh.stdout"; then
-              echo "Transient network/navigation failure on fresh ALF exchange attempt $attempt/3; retrying."
-              sleep 3
-            else
-              break
-            fi
-          done
-
-          if [ "$fresh_exit" -ne 0 ]; then
-            echo "::error::Fresh ALF exchange failed with exit code $fresh_exit."
-            tail -n 200 "$workdir/unity-license-activate-fresh.stdout" || true
-            tail -n 200 "$workdir/unity-license-activate-fresh.stderr" || true
-            exit 1
-          fi
-
-          ulf_path="$(find "$workdir" -maxdepth 1 -type f -name '*.ulf' | head -n 1)"
-          if [ -z "${ulf_path:-}" ]; then
-            echo "::error::No .ulf produced by fresh ALF exchange."
-            exit 1
-          fi
-
-      - name: Setup .NET
-        if: steps.unity-creds.outputs.should_run == 'true'
-        uses: actions/setup-dotnet@v4
-        with:
-          dotnet-version: "8.0.x"
-
-      - name: Build Unity test dependencies (net45)
-        if: steps.unity-creds.outputs.should_run == 'true'
-        run: |
-          cd src
-          dotnet build MoonSharp.Interpreter.Tests/MoonSharp.Interpreter.Tests.csproj -c Release -f net45 -v minimal
-
-      - name: Sync UnityTestBed plugins
-        if: steps.unity-creds.outputs.should_run == 'true'
-        run: |
-          cd src
-          ./Unity/ResynchAssets.sh
-
-      - name: Activate Unity license inside container
-        if: steps.unity-creds.outputs.should_run == 'true'
-        id: unity-activate-container
-        run: |
-          set -euo pipefail
-
-          workdir="$PWD/_unity-license"
-          container_name="${{ steps.unity-container.outputs.container_name }}"
-          ulf_path="$(find "$workdir" -maxdepth 1 -type f -name '*.ulf' | head -n 1)"
-
-          if [ -z "${ulf_path:-}" ] || [ ! -s "$ulf_path" ]; then
-            echo "::error::No .ulf available to install in Unity container."
-            exit 1
-          fi
-
-          ulf_file="$(basename "$ulf_path")"
-
-          set +e
-          timeout 60 docker exec "$container_name" /bin/bash -lc \
-            "unity-editor -logFile /license/unity-activate.log -batchmode -nographics -quit -manualLicenseFile /license/$ulf_file"
-          activate_exit=$?
-          set -e
-
-          if [ "$activate_exit" -ne 0 ]; then
-            if grep -q "License file loaded." "$workdir/unity-activate.log"; then
-              echo "::warning::Unity returned exit $activate_exit during manual license install, but log confirms license file loaded. Continuing."
-            else
-              echo "::error::Unity license install failed in container (exit $activate_exit)."
-              tail -n 200 "$workdir/unity-activate.log" || true
-              exit 1
-            fi
-          fi
-
-      - name: Run UnityTestBed scene in batchmode (Docker)
-        if: steps.unity-creds.outputs.should_run == 'true'
-        timeout-minutes: 5
-        run: |
-          set -euo pipefail
-
-          container_name="${{ steps.unity-container.outputs.container_name }}"
-
-          docker exec "$container_name" /bin/bash -lc \
-            'unity-editor -batchmode -nographics -quit -projectPath /github/workspace/src/Unity/UnityTestBed -executeMethod MoonSharp.UnityTestBed.BatchRunner.Run -logFile -'
-
-      - name: Export Unity editor image for cache
-        if: always() && steps.unity-creds.outputs.should_run == 'true' && steps.unity-image-pull.conclusion == 'success'
-        id: unity-image-cache-export
-        run: |
-          set -euo pipefail
-          if docker image inspect "$UNITY_EDITOR_IMAGE" >/dev/null 2>&1; then
-            docker save "$UNITY_EDITOR_IMAGE" -o /tmp/unity-editor-image.tar
-            echo "has_tar=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "has_tar=false" >> "$GITHUB_OUTPUT"
-          fi
-
-      - name: Save Unity editor image cache
-        if: always() && steps.unity-creds.outputs.should_run == 'true' && steps.unity-image-pull.conclusion == 'success' && steps.unity-image-cache-export.outputs.has_tar == 'true'
-        uses: actions/cache/save@v4
-        with:
-          path: /tmp/unity-editor-image.tar
-          key: unity-editor-image-${{ runner.os }}-ubuntu-2019.4.41f2-linux-il2cpp-3
-
-      - name: Stop Unity test container
-        if: always() && steps.unity-creds.outputs.should_run == 'true' && steps.unity-container.outputs.container_name != ''
-        run: |
-          docker rm -f "${{ steps.unity-container.outputs.container_name }}" >/dev/null 2>&1 || true
-
-      - name: UnityTestBed skipped
-        if: steps.unity-creds.outputs.should_run != 'true'
-        run: 'echo "UnityTestBed skipped: UNITY_EMAIL, UNITY_PASSWORD, or UNITY_TOTP_KEY is missing."'
-
-  devtools-build:
-    runs-on: ubuntu-latest
-    needs: docker-ci
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Install Mono runtime
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y mono-runtime
-
-      - name: Setup .NET
-        uses: actions/setup-dotnet@v4
-        with:
-          dotnet-version: "8.0.x"
-
-      - name: Build DevTools Playground
-        run: dotnet build src/DevTools/Playground/Playground.csproj -c Release -v minimal
-
-      - name: Run DevTools Playground
-        run: mono bin/Release/net45/Playground.exe
-        working-directory: src/DevTools/Playground
-
-      - name: Build DevTools PerformanceComparison
-        run: dotnet build src/DevTools/PerformanceComparison/PerformanceComparison.csproj -c Release -v minimal
-
-      - name: Run DevTools PerformanceComparison (MoonSharp vs NLua)
-        run: dotnet run --project src/DevTools/PerformanceComparison/PerformanceComparison.csproj -c Release
-
-      - name: Build DevTools VsCodeDebugger_Testbed
-        run: dotnet build src/DevTools/VsCodeDebugger_Testbed/VsCodeDebugger_Testbed.csproj -c Release -v minimal
+          grep -q "StringBuilder" .artifacts/hardwire/HardwiredTypes.cs
