@@ -14,7 +14,7 @@ permissions:
 env:
   DOTNET_VERSION: "10.0.x"
   EXE_TFM: net10.0
-  PACKAGE_ID: Dustorm.MoonSharp.Plus
+  PACKAGE_ID: Coderz.MoonSharp.Plus
 
 jobs:
   release:

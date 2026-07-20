@@ -2,8 +2,8 @@
 
     <PropertyGroup>
         <TargetFramework>netstandard2.0</TargetFramework>
-        <PackageId>Dustorm.MoonSharp.Plus</PackageId>
-        <Title>Dustorm.MoonSharp.Plus</Title>
+        <PackageId>Coderz.MoonSharp.Plus</PackageId>
+        <Title>Coderz.MoonSharp.Plus</Title>
         <Description>An interpreter for the Lua language, extended with exact 'integer' (Int64) and 'decimal' (System.Decimal) numeric types with checked arithmetic. A fork of MoonSharp with non-pure-Lua extensions.</Description>
         <PackageReadmeFile>README.md</PackageReadmeFile>
         <SignAssembly>true</SignAssembly>
@@ -12,7 +12,7 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <None Include="..\..\README.md" Pack="true" PackagePath="" />
+        <None Include="NUGET.md" Pack="true" PackagePath="README.md" />
     </ItemGroup>
 
 </Project>
