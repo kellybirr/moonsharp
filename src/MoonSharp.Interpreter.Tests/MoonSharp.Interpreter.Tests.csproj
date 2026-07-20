@@ -1,44 +1,11 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
-
+<Project Sdk="Microsoft.NET.Sdk">
     <PropertyGroup>
-        <TargetFrameworks>netstandard2.0;net45</TargetFrameworks>
-        <AssemblyOriginatorKeyFile>..\keypair.snk</AssemblyOriginatorKeyFile>
-        <Authors>MoonSharp</Authors>
-        <Description></Description>
-        <Copyright>Copyright © 2014-2015, Marco Mastropaolo</Copyright>
-        <PackageProjectUrl>https://www.moonsharp.org</PackageProjectUrl>
-        <PackageLicenseUrl>https://raw.githubusercontent.com/xanathar/moonsharp/master/LICENSE</PackageLicenseUrl>
-        <RepositoryUrl>https://github.com/xanathar/moonsharp/</RepositoryUrl>
+        <TargetFramework>netstandard2.0</TargetFramework>
         <PackageId>MoonSharp.Interpreter.Tests</PackageId>
         <Title>MoonSharp.Interpreter.Tests</Title>
-        <PackageVersion>3.0.42-rc</PackageVersion>
-    </PropertyGroup>
-
-    <PropertyGroup Condition="'$(Configuration)'=='Debug'">
-        <DebugSymbols>true</DebugSymbols>
-        <DebugType>full</DebugType>
-        <Optimize>false</Optimize>
-        <OutputPath>bin\Debug\</OutputPath>
-        <DefineConstants>TRACE;DEBUG</DefineConstants>
-        <ErrorReport>prompt</ErrorReport>
-        <WarningLevel>4</WarningLevel>
-        <NoWarn>3021, 1591</NoWarn>
-        <DocumentationFile />
-    </PropertyGroup>
-
-    <PropertyGroup Condition=" '$(Configuration)' == 'Release' ">
-        <DebugType>pdbonly</DebugType>
-        <Optimize>true</Optimize>
-        <OutputPath>bin\Release\</OutputPath>
-        <DefineConstants>TRACE</DefineConstants>
-        <ErrorReport>prompt</ErrorReport>
-        <WarningLevel>4</WarningLevel>
-        <NoWarn />
-        <UseVSHostingProcess>false</UseVSHostingProcess>
-    </PropertyGroup>
-
-    <PropertyGroup Condition="'$(DebugType)' == 'portable'">
-        <AllowedOutputExtensionsInPackageBuildOutputFolder>$(AllowedOutputExtensionsInPackageBuildOutputFolder);.pdb</AllowedOutputExtensionsInPackageBuildOutputFolder>
+        <Description>NUnit test suite for the MoonSharp interpreter</Description>
+        <IsPackable>false</IsPackable>
+        <AssemblyOriginatorKeyFile>..\keypair.snk</AssemblyOriginatorKeyFile>
     </PropertyGroup>
 
     <ItemGroup>
@@ -171,12 +138,8 @@
       <ProjectReference Include="..\MoonSharp.Interpreter\MoonSharp.Interpreter.csproj" />
     </ItemGroup>
 
-    <ItemGroup Condition="'$(TargetFramework)'=='netstandard2.0'">
+    <ItemGroup>
       <PackageReference Include="NUnit" Version="3.13.3" />
-    </ItemGroup>
-
-    <ItemGroup Condition="'$(TargetFramework)'=='net45'">
-      <PackageReference Include="NUnit" Version="3.5.0" />
     </ItemGroup>
 
 </Project>

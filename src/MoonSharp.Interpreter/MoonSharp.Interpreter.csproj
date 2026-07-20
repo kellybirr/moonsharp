@@ -1,61 +1,18 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
-        <TargetFrameworks>netstandard2.0;net45</TargetFrameworks>
-        <AssemblyOriginatorKeyFile>keypair.snk</AssemblyOriginatorKeyFile>
-        <Authors>MoonSharp</Authors>
-        <Description>An interpreter for the Lua language, extended with exact 'integer' (Int64) and 'decimal' (System.Decimal) numeric types with checked arithmetic. A fork of MoonSharp with non-pure-Lua extensions.</Description>
-        <Copyright>Copyright © 2014-2015, Marco Mastropaolo</Copyright>
-        <PackageProjectUrl>https://github.com/kellybirr/moonsharp</PackageProjectUrl>
-        <PackageLicenseFile>LICENSE</PackageLicenseFile>
-        <RepositoryUrl>https://github.com/kellybirr/moonsharp/</RepositoryUrl>
+        <TargetFramework>netstandard2.0</TargetFramework>
         <PackageId>Dustorm.MoonSharp.Plus</PackageId>
         <Title>Dustorm.MoonSharp.Plus</Title>
+        <Description>An interpreter for the Lua language, extended with exact 'integer' (Int64) and 'decimal' (System.Decimal) numeric types with checked arithmetic. A fork of MoonSharp with non-pure-Lua extensions.</Description>
         <PackageReadmeFile>README.md</PackageReadmeFile>
         <SignAssembly>true</SignAssembly>
-        <MinVerTagPrefix>v</MinVerTagPrefix>
+        <AssemblyOriginatorKeyFile>keypair.snk</AssemblyOriginatorKeyFile>
+        <DefineConstants>$(DefineConstants);DOTNET_CORE;HASDYNAMIC</DefineConstants>
     </PropertyGroup>
 
     <ItemGroup>
-        <None Include="..\..\LICENSE" Pack="true" PackagePath="" />
         <None Include="..\..\README.md" Pack="true" PackagePath="" />
-        <PackageReference Include="MinVer" Version="7.0.0" PrivateAssets="All" />
     </ItemGroup>
-
-    <PropertyGroup Condition="'$(Configuration)'=='Debug'">
-        <DebugSymbols>true</DebugSymbols>
-        <DebugType>full</DebugType>
-        <Optimize>false</Optimize>
-        <OutputPath>bin\Debug\</OutputPath>
-        <DefineConstants>TRACE;DEBUG</DefineConstants>
-        <ErrorReport>prompt</ErrorReport>
-        <WarningLevel>4</WarningLevel>
-        <NoWarn>3021, 1591</NoWarn>
-        <DocumentationFile />
-    </PropertyGroup>
-
-    <PropertyGroup Condition=" '$(Configuration)' == 'Release' ">
-        <DebugType>pdbonly</DebugType>
-        <Optimize>true</Optimize>
-        <OutputPath>bin\Release\</OutputPath>
-        <DefineConstants>TRACE</DefineConstants>
-        <ErrorReport>prompt</ErrorReport>
-        <WarningLevel>4</WarningLevel>
-        <NoWarn />
-        <DocumentationFile>bin\Release\MoonSharp.Interpreter.xml</DocumentationFile>
-        <UseVSHostingProcess>false</UseVSHostingProcess>
-    </PropertyGroup>
-
-    <PropertyGroup Condition="'$(DebugType)' == 'portable'">
-        <AllowedOutputExtensionsInPackageBuildOutputFolder>$(AllowedOutputExtensionsInPackageBuildOutputFolder);.pdb</AllowedOutputExtensionsInPackageBuildOutputFolder>
-    </PropertyGroup>
-
-    <PropertyGroup Condition=" $(TargetFramework.StartsWith('netstandard')) ">
-        <DefineConstants>$(DefineConstants);DOTNET_CORE</DefineConstants>
-    </PropertyGroup>
-
-    <PropertyGroup>
-        <DefineConstants>$(DefineConstants);HASDYNAMIC</DefineConstants>
-    </PropertyGroup>
 
 </Project>

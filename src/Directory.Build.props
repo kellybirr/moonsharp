@@ -1,0 +1,45 @@
+<Project>
+
+    <!--
+      Shared settings for every project under src/.
+      Project-specific values (TargetFramework, PackageId, Title, Description,
+      OutputType, signing) stay in the individual .csproj.
+    -->
+
+    <PropertyGroup>
+        <!--
+          MinVer derives the version from the nearest reachable v* git tag, so the
+          build is the single source of truth for versioning. Do NOT set Version or
+          PackageVersion in a .csproj - it will silently disagree with the tag.
+          Requires a full-history checkout (fetch-depth: 0) in CI.
+        -->
+        <MinVerTagPrefix>v</MinVerTagPrefix>
+
+        <Authors>MoonSharp</Authors>
+        <Copyright>Copyright © 2014-2015, Marco Mastropaolo</Copyright>
+        <PackageProjectUrl>https://github.com/kellybirr/moonsharp</PackageProjectUrl>
+        <RepositoryUrl>https://github.com/kellybirr/moonsharp/</RepositoryUrl>
+        <PackageLicenseFile>LICENSE</PackageLicenseFile>
+
+        <GenerateDocumentationFile>true</GenerateDocumentationFile>
+
+        <!--
+          1591 (missing XML comment) fires ~250 times across the inherited upstream
+          codebase and 3021 (redundant CLSCompliant) on every assembly. Silencing both
+          keeps genuine warnings visible.
+        -->
+        <NoWarn>$(NoWarn);1591;3021</NoWarn>
+
+        <!-- Ship symbols alongside the assembly when packing. -->
+        <AllowedOutputExtensionsInPackageBuildOutputFolder>$(AllowedOutputExtensionsInPackageBuildOutputFolder);.pdb</AllowedOutputExtensionsInPackageBuildOutputFolder>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <PackageReference Include="MinVer" Version="7.0.0" PrivateAssets="All" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <None Include="$(MSBuildThisFileDirectory)..\LICENSE" Pack="true" PackagePath="" Visible="false" />
+    </ItemGroup>
+
+</Project>

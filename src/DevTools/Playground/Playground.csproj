@@ -1,49 +1,11 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
-
+<Project Sdk="Microsoft.NET.Sdk">
     <PropertyGroup>
-        <TargetFramework>net45</TargetFramework>
-        <AssemblyOriginatorKeyFile>keypair.snk</AssemblyOriginatorKeyFile>
-        <Authors>MoonSharp</Authors>
-        <Description></Description>
-        <Copyright>Copyright © 2014-2015, Marco Mastropaolo</Copyright>
-        <PackageProjectUrl>https://www.moonsharp.org</PackageProjectUrl>
-        <PackageLicenseUrl>https://raw.githubusercontent.com/xanathar/moonsharp/master/LICENSE</PackageLicenseUrl>
-        <RepositoryUrl>https://github.com/xanathar/moonsharp/</RepositoryUrl>
+        <TargetFramework>net10.0</TargetFramework>
+        <OutputType>Exe</OutputType>
         <PackageId>Playground</PackageId>
         <Title>Playground</Title>
-        <SignAssembly>true</SignAssembly>
-        <PackageVersion>3.0.42-rc</PackageVersion>
-        <OutputType>WinExe</OutputType>
-    </PropertyGroup>
-
-    <PropertyGroup Condition="'$(Configuration)'=='Debug'">
-        <DebugSymbols>true</DebugSymbols>
-        <DebugType>full</DebugType>
-        <Optimize>false</Optimize>
-        <OutputPath>bin\Debug\</OutputPath>
-        <DefineConstants>TRACE;DEBUG</DefineConstants>
-        <ErrorReport>prompt</ErrorReport>
-        <WarningLevel>4</WarningLevel>
-        <NoWarn>3021, 1591</NoWarn>
-        <DocumentationFile />
-    </PropertyGroup>
-
-    <PropertyGroup Condition=" '$(Configuration)' == 'Release' ">
-        <DebugType>pdbonly</DebugType>
-        <Optimize>true</Optimize>
-        <OutputPath>bin\Release\</OutputPath>
-        <DefineConstants>TRACE</DefineConstants>
-        <ErrorReport>prompt</ErrorReport>
-        <WarningLevel>4</WarningLevel>
-        <NoWarn />
-        <RunCodeAnalysis>false</RunCodeAnalysis>
-        <CodeAnalysisRuleSet>ExtendedDesignGuidelineRules.ruleset</CodeAnalysisRuleSet>
-        <DocumentationFile>bin\Release\MoonSharp.Interpreter.xml</DocumentationFile>
-        <UseVSHostingProcess>false</UseVSHostingProcess>
-    </PropertyGroup>
-
-    <PropertyGroup Condition="'$(DebugType)' == 'portable'">
-        <AllowedOutputExtensionsInPackageBuildOutputFolder>$(AllowedOutputExtensionsInPackageBuildOutputFolder);.pdb</AllowedOutputExtensionsInPackageBuildOutputFolder>
+        <Description>Scratch console app for experimenting with the MoonSharp interpreter</Description>
+        <IsPackable>false</IsPackable>
     </PropertyGroup>
 
     <ItemGroup>
@@ -63,10 +25,6 @@
       <ProjectReference Include="..\..\MoonSharp.Hardwire\MoonSharp.Hardwire.csproj" />
         <ProjectReference Include="..\..\MoonSharp.Interpreter\MoonSharp.Interpreter.csproj" />
       <ProjectReference Include="..\..\MoonSharp.RemoteDebugger\MoonSharp.RemoteDebugger.csproj" />
-    </ItemGroup>
-
-    <ItemGroup Condition="'$(TargetFramework)' == 'netstandard2.0'">
-      <PackageReference Include="System.CodeDom" Version="4.5.0" />
     </ItemGroup>
 
 </Project>

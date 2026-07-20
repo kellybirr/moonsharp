@@ -1,53 +1,19 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
-        <TargetFrameworks>net8.0;net45</TargetFrameworks>
-        <AssemblyOriginatorKeyFile>keypair.snk</AssemblyOriginatorKeyFile>
-        <Authors>MoonSharp</Authors>
-        <Description>REPL Interpreter for the MoonSharp language</Description>
-        <Copyright>Copyright © 2014-2015, Marco Mastropaolo</Copyright>
-        <PackageProjectUrl>https://www.moonsharp.org</PackageProjectUrl>
-        <PackageLicenseUrl>https://raw.githubusercontent.com/xanathar/moonsharp/master/LICENSE</PackageLicenseUrl>
-        <RepositoryUrl>https://github.com/xanathar/moonsharp/</RepositoryUrl>
+        <TargetFramework>net10.0</TargetFramework>
+        <OutputType>Exe</OutputType>
         <PackageId>MoonSharp</PackageId>
         <Title>MoonSharp</Title>
+        <Description>REPL interpreter and command line tool for the MoonSharp language</Description>
         <SignAssembly>true</SignAssembly>
-        <PackageVersion>3.0.42-rc</PackageVersion>
-        <OutputType>Exe</OutputType>
-    </PropertyGroup>
-
-    <PropertyGroup Condition="'$(Configuration)'=='Debug'">
-        <DebugSymbols>true</DebugSymbols>
-        <DebugType>full</DebugType>
-        <Optimize>false</Optimize>
-        <OutputPath>bin\Debug\</OutputPath>
-        <DefineConstants>TRACE;DEBUG</DefineConstants>
-        <ErrorReport>prompt</ErrorReport>
-        <WarningLevel>4</WarningLevel>
-        <NoWarn>3021, 1591</NoWarn>
-        <DocumentationFile />
-    </PropertyGroup>
-
-    <PropertyGroup Condition=" '$(Configuration)' == 'Release' ">
-        <DebugType>pdbonly</DebugType>
-        <Optimize>true</Optimize>
-        <OutputPath>bin\Release\</OutputPath>
-        <DefineConstants>TRACE</DefineConstants>
-        <ErrorReport>prompt</ErrorReport>
-        <WarningLevel>4</WarningLevel>
-        <NoWarn />
-        <DocumentationFile>bin\Release\MoonSharp.xml</DocumentationFile>
-        <UseVSHostingProcess>false</UseVSHostingProcess>
-    </PropertyGroup>
-
-    <PropertyGroup Condition="'$(DebugType)' == 'portable'">
-        <AllowedOutputExtensionsInPackageBuildOutputFolder>$(AllowedOutputExtensionsInPackageBuildOutputFolder);.pdb</AllowedOutputExtensionsInPackageBuildOutputFolder>
+        <AssemblyOriginatorKeyFile>keypair.snk</AssemblyOriginatorKeyFile>
     </PropertyGroup>
 
     <ItemGroup>
-      <ProjectReference Include="..\MoonSharp.Hardwire\MoonSharp.Hardwire.csproj" />
-      <ProjectReference Include="..\MoonSharp.Interpreter\MoonSharp.Interpreter.csproj" />
-      <ProjectReference Include="..\MoonSharp.RemoteDebugger\MoonSharp.RemoteDebugger.csproj" />
+        <ProjectReference Include="..\MoonSharp.Hardwire\MoonSharp.Hardwire.csproj" />
+        <ProjectReference Include="..\MoonSharp.Interpreter\MoonSharp.Interpreter.csproj" />
+        <ProjectReference Include="..\MoonSharp.RemoteDebugger\MoonSharp.RemoteDebugger.csproj" />
     </ItemGroup>
 
 </Project>
