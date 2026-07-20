@@ -4,7 +4,8 @@
         <TargetFramework>netstandard2.0</TargetFramework>
         <PackageId>Coderz.MoonSharp.Plus</PackageId>
         <Title>Coderz.MoonSharp.Plus</Title>
-        <Description>An interpreter for the Lua language, extended with exact 'integer' (Int64) and 'decimal' (System.Decimal) numeric types with checked arithmetic. A fork of MoonSharp with non-pure-Lua extensions.</Description>
+        <Description>A fork of MoonSharp, the C# Lua interpreter by Marco Mastropaolo, for embedding untrusted or money-handling scripts. Adds host-set execution limits (instruction budget and CancellationToken) that terminate runaway scripts with an exception script code cannot intercept, plus exact 'integer' (Int64) and 'decimal' (System.Decimal) numeric types with checked arithmetic.</Description>
+        <PackageTags>lua;interpreter;scripting;sandbox;embedding;decimal;moonsharp</PackageTags>
         <PackageReadmeFile>README.md</PackageReadmeFile>
         <SignAssembly>true</SignAssembly>
         <AssemblyOriginatorKeyFile>keypair.snk</AssemblyOriginatorKeyFile>

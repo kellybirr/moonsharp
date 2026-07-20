@@ -4,17 +4,66 @@
 Fork maintained by Kelly Birr.
 
 MoonSharp is a complete Lua interpreter written entirely in C#, and all the credit
-for it belongs to Marco Mastropaolo and its contributors. This fork adds two exact
-numeric types alongside the standard Lua `number`, for hosts that need money-safe
-and precision-safe scripting. Everything the original library does, it still does;
-the additions are strictly on top.
+for it belongs to Marco Mastropaolo and its contributors. This fork adds host-side
+execution limits and two exact numeric types, aimed at embedding untrusted or
+money-handling scripts. Everything the original library does, it still does; the
+additions are strictly on top.
+
+**Source and issues:** https://github.com/kellybirr/moonsharp
 
 Ships a single `netstandard2.0` assembly with **no dependencies**, so it runs on
 .NET 8/10, .NET Framework 4.6.1+, Mono and Unity without framework pinning.
 
 ---
 
-## What this fork adds
+## Execution limits — stopping runaway scripts
+
+Stock MoonSharp gives a host no way to bound a script's execution: `while true do
+end` hangs the calling thread. This fork adds opt-in, per-`Script` limits checked
+inside the VM instruction loop.
+
+```csharp
+var script = new Script();
+script.ExecutionLimits.InstructionBudget = 10_000_000;
+script.ExecutionLimits.CancellationToken = cts.Token;
+
+try
+{
+    script.DoString(untrustedSource);
+}
+catch (ScriptTerminationException ex)
+{
+    // budget exhausted or cancelled; ex.DecoratedMessage carries the source location
+}
+```
+
+* `InstructionBudget` — max VM instructions for this `Script`; `null` = unlimited.
+  Counting is cumulative until `ExecutionLimits.Reset()`. `Executed` reports the
+  running count.
+* `CancellationToken` — checked every 1024 instructions, so a host can cancel on a
+  wall-clock timeout.
+
+**Script code cannot intercept termination.** `ScriptTerminationException`
+deliberately does not derive from `ScriptRuntimeException`, so `pcall`/`xpcall`
+won't catch it, `coroutine.resume` rethrows it, and `debug.debug()` re-raises
+rather than swallowing it — a sandboxed script can't wrap itself in `pcall` to
+survive its own budget.
+
+Two limitations worth knowing:
+
+* **Configure limits before calling in.** The loop snapshots whether checking is
+  enabled when execution begins, so installing a budget on an already-running,
+  initially-unlimited execution takes effect on the *next* call. Cancelling an
+  already-installed token mid-run does work.
+* **Enforcement is per VM instruction, so it preempts Lua code only.** A blocking
+  CLR callback the script invokes is not interrupted by the instruction counter.
+  If you expose such callbacks, have them observe the same `CancellationToken`.
+
+With no limits set, behaviour and performance are unchanged.
+
+---
+
+## Exact numeric types
 
 Standard Lua `number` is a binary double, so `0.1 + 0.2 ~= 0.3` and integers above
 2^53 lose precision. This fork adds two exact types that fix that. Both are
@@ -54,6 +103,14 @@ so no fractional part is ever silently lost:
 | `integer op decimal` | `decimal` (checked) |
 | `decimal op number`  | `decimal` (checked) |
 | `decimal op decimal` | `decimal` (checked) |
+
+Both types also carry a `__concat` metamethod, so they join strings under `..`
+like the plain numbers they represent, in either operand order — the integer
+keeps its exact text and the decimal its full scale:
+
+```lua
+print("total: " .. decimal('19.99') .. " / " .. integer(42))   -- total: 19.99 / 42
+```
 
 From the host side these are `MoonSharp.Interpreter.IntegerType` and
 `MoonSharp.Interpreter.DecimalType`, registered via `CoreModules.Integer` and
